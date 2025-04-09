@@ -1,0 +1,40 @@
+Para empezar la maquina de Code se ejecuto un analisis con nmap usando el siguinte comando:
+nmap -sSCV <ip>
+
+con el cual obtuviemos los siguintes puertos abiertos: 5000/tcp y 22/tcp en los cuales corren el servicio de ssh y en el puerto 5000 corre un servicio web en 
+el cual se puede ejecutar codigo en python y permite crearte cuentas dentro de la pagina web, de igual manera esta misma pagina te permite ejecutar hasta
+cierto punto codigo de python el cual te puede permitir hacer consultas a la base de datos, lo que si no permite es ejecutar codigo que liste cosas de la maquina
+use el siguiente codigo.
+
+print([(user.id, user.username,user.password) for user in User.query.all()])
+
+en el cual se consulta en la tabla User los datos de usuario, contrasena y id de los cuales me arrojo lo siguinte:
+
+[(1, 'development', '759b74ce43947f5f4c91aeddc3e5bad3'), (2, 'martin', '3de6f30c4a09c27fc71932bfc68474be')] 
+
+en ambos casos las contrasenas usan un hash md5 crypt.
+
+la contrasena para la cuenta de martien: nafeelswordsmaster
+la contrasena para la cuenta de development es: development
+
+el cosneguir las contrasenas primero accedi a sus cuenats desde la pagina web los cuales me dejo hacer login sin problemas, despues intente hacer login por ssh
+usando las credenciales de martin y tmabien me lo permitio, gracias a esto pude ver el contenido de la carpeta de martin y ver que usuarios existen dentro del 
+sistema mas aparte de de martin, el otro usuario se llama app-production al cual no tenemos acceso a su carpeta home, en la carpeta de martin encontramos una 
+carpeta de basckups en el cual hay un backup y un archivo json el cual tenai insrtuciones de donde extraer archivos y donde moverlos, al ver ese archvio revise la
+carpeta en la cual no encontre nada relevante y decidi buscar en otros lugares por si eocntraba archivos que no deberian estar ahi y despues de un rato en la 
+carpeta de /usr/bin encontre un archivo llamado backy.sh el cual se ejecutaba con permisos de sudo y apuntaba a archivos json al ver esto decidi modificar
+el archvio json que estaba en la carpeta home de martin para que intenara extraer la user.txt del usuario app-production logrando conseguir la flag user
+
+user_flag: 4aa91bc805e6c00856ed4123c6a0712d
+
+para conseguir la root flag tenia que obligar a que se lograra que la excepcion de solo capretas home y var fueran los objetivos fueran manipuladas y para ello
+utilice la siguinte ruta para conseguir la carpeta root
+
+"/var/....//root/"
+
+con esto logre sacar el archivo tar pero con los archivos root incluido la flag
+
+root_flag: 
+
+esto fue todo de la maquina
+
